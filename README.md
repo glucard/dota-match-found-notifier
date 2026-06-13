@@ -112,12 +112,19 @@ green of the button.
 normally never edit this by hand — the wizard writes it for you.
 
 ```toml
+[detector]
+backend = "pixel"          # "pixel" (screen) or "console" (Game Coordinator log, Linux)
+
+[detector.console]
+log_path = "auto"          # "auto" finds Dota's console.log, or an explicit path
+triggers = ["k_EMsgGCReadyUpStatus"]
+
 [ntfy]
 server = "https://ntfy.sh"
 topic  = "d2aa-XXXXXXXX"   # your private push channel (keep it to yourself)
 priority = 5
 
-[calibration]
+[calibration]                # only used by the pixel backend
 x = 0.5                    # fractional screen coords (survive resolution changes)
 y = 0.72
 color = [108, 168, 50]     # sampled Accept-button color
@@ -136,13 +143,24 @@ confirm_frames = 3         # consecutive hits required before notifying
 Detection is **pluggable** — everything sits behind a `Detector` interface
 (`start/poll/stop`) so new methods can drop in without touching the rest:
 
-- **`pixel`** (shipping) — watches a calibrated screen region. Works on Windows + Linux.
-- **`netcon`** (planned, Linux only) — read Dota's real-time Source 2 console via
-  `-netconport`; resolution-independent and works even when Dota is minimized.
-  (Windows broke this in 2023, so it's Linux-only.)
+- **`pixel`** — watches a calibrated screen region. Works on Windows + Linux; needs
+  Dota visible.
+- **`console`** (Linux only) — reads Dota's **Game Coordinator log** (`console.log`,
+  written by the launch options `-condebug -conclearlog`) and fires the instant the
+  ready-check appears. Resolution-independent, no calibration, works even when Dota is
+  minimized. Linux-only because `console.log` is buffered-until-exit on Windows.
 
-Screen capture is likewise abstracted: **mss** on Windows/X11, the **PipeWire
-ScreenCast portal** on Wayland (where mss returns black for fullscreen games).
+Screen capture (pixel backend) is likewise abstracted: **mss** on Windows/X11, the
+**PipeWire ScreenCast portal** on Wayland (where mss returns black for fullscreen games).
+
+### Console detection setup (Linux)
+
+1. Steam → Dota 2 → Properties → **Launch Options** → add `-condebug -conclearlog`, then
+   restart Dota. (`-conclearlog` also keeps the log small — it's wiped each launch.)
+2. In the d2aa menu: **Detection method → Console log**. It checks the log is reachable
+   and switches you over — no calibration needed.
+3. Test penalty-free: create a **custom arcade lobby** (it uses the same ready-up
+   messages as matchmaking) and run **Tune detection** to watch it fire.
 
 ---
 

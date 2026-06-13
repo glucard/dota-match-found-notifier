@@ -19,7 +19,21 @@ def test_roundtrip(tmp_path):
     assert loaded.calibration.x == 0.42
     assert loaded.calibration.color == [10, 20, 30]
     assert loaded.calibration.calibrated is True
-    assert loaded.detector.netcon_port == 28000  # placeholder survives roundtrip
+    assert loaded.detector.backend == "pixel"
+    assert loaded.detector.console_log_path == "auto"
+    assert loaded.detector.console_triggers == ["k_EMsgGCReadyUpStatus"]
+
+
+def test_legacy_netcon_config_loads(tmp_path):
+    # Old configs carried a [detector.netcon] table; it must be ignored cleanly.
+    p = tmp_path / "config.toml"
+    p.write_text(
+        '[detector]\nbackend = "pixel"\n[detector.netcon]\nport = 28000\n',
+        encoding="utf-8",
+    )
+    loaded = load(p)
+    assert loaded.detector.backend == "pixel"
+    assert loaded.detector.console_log_path == "auto"
 
 
 def test_missing_file_friendly_error(tmp_path):

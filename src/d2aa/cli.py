@@ -70,6 +70,14 @@ def run() -> int:
     ui.setup_logging(args.verbose)
 
     if args.config:
+        try:
+            backend = load().detector.backend.lower()
+        except ConfigError:
+            backend = "pixel"
+        if backend == "console":
+            from . import setup_console
+
+            return setup_console.run()
         return wizard.run()
 
     # No explicit action + an interactive terminal -> the friendly menu.

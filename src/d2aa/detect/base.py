@@ -30,3 +30,11 @@ class Detector(ABC):
     @abstractmethod
     def stop(self) -> None:
         """Release resources. Safe to call more than once."""
+
+    def preflight(self) -> str | None:
+        """Return a user-facing reason the detector isn't ready to run, else None.
+
+        Lets each backend declare its own readiness (pixel: calibrated; console:
+        Linux + log present) instead of the app loop hard-coding one check.
+        """
+        return None
