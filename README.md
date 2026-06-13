@@ -157,8 +157,11 @@ Screen capture (pixel backend) is likewise abstracted: **mss** on Windows/X11, t
 
 1. Steam → Dota 2 → Properties → **Launch Options** → add `-condebug -conclearlog`, then
    restart Dota. (`-conclearlog` also keeps the log small — it's wiped each launch.)
-2. In the d2aa menu: **Detection method → Console log**. It checks the log is reachable
-   and switches you over — no calibration needed.
+2. In the d2aa menu: **Detection method → Console log**. It auto-finds `console.log`
+   across all your Steam libraries (it reads `libraryfolders.vdf`, so Dota on a second
+   drive / custom library is handled — native, Flatpak, and Snap Steam too). No
+   calibration needed. If your setup is unusual, set an explicit path in the config:
+   `[detector.console] log_path = "/full/path/to/console.log"`.
 3. Test penalty-free: create a **custom arcade lobby** (it uses the same ready-up
    messages as matchmaking) and run **Tune detection** to watch it fire.
 

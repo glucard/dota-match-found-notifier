@@ -18,30 +18,73 @@ client exits, so there's nothing to tail in real time.
 from __future__ import annotations
 
 import os
+import re
 import sys
 from pathlib import Path
 
 from .base import Detector, MatchEvent
 
-# Known Steam locations (native + Flatpak). Expanded at resolve time.
-_CANDIDATES = [
-    "~/.local/share/Steam/steamapps/common/dota 2 beta/game/dota/console.log",
-    "~/.var/app/com.valvesoftware.Steam/.local/share/Steam/"
-    "steamapps/common/dota 2 beta/game/dota/console.log",
-]
-
 DEFAULT_TRIGGERS = ["k_EMsgGCReadyUpStatus"]
+
+# Steam install roots where libraryfolders.vdf and the default library live.
+_STEAM_ROOTS = [
+    "~/.local/share/Steam",
+    "~/.steam/steam",
+    "~/.steam/root",
+    "~/.var/app/com.valvesoftware.Steam/.local/share/Steam",  # Flatpak
+    "~/snap/steam/common/.local/share/Steam",  # Snap
+]
+# Dota's console.log relative to a Steam library root.
+_DOTA_SUBPATH = "steamapps/common/dota 2 beta/game/dota/console.log"
+_LIBRARY_PATH_RE = re.compile(r'"path"\s*"([^"]+)"')
+
+
+def _steam_roots() -> list[Path]:
+    return [Path(p).expanduser() for p in _STEAM_ROOTS]
+
+
+def _library_paths() -> list[Path]:
+    """Every Steam library root: the install roots themselves plus any extra
+    libraries listed in ``libraryfolders.vdf`` (e.g. Dota on a second drive)."""
+    libs: list[Path] = []
+    seen: set[Path] = set()
+
+    def _add(path: Path) -> None:
+        try:
+            key = path.resolve()
+        except OSError:
+            key = path
+        if key not in seen:
+            seen.add(key)
+            libs.append(path)
+
+    for root in _steam_roots():
+        if root.exists():
+            _add(root)
+        for vdf in (
+            root / "steamapps" / "libraryfolders.vdf",
+            root / "config" / "libraryfolders.vdf",
+        ):
+            try:
+                text = vdf.read_text(encoding="utf-8", errors="replace")
+            except OSError:
+                continue
+            for match in _LIBRARY_PATH_RE.findall(text):
+                _add(Path(match))
+    return libs
 
 
 def candidate_paths() -> list[Path]:
-    return [Path(p).expanduser() for p in _CANDIDATES]
+    """Every console.log location to try, across all discovered Steam libraries."""
+    return [lib / _DOTA_SUBPATH for lib in _library_paths()]
 
 
 def resolve_console_log(configured: str = "auto") -> Path | None:
     """Resolve ``configured`` to a console.log path.
 
-    "auto" -> the first existing candidate; an explicit path -> itself if it
-    exists. Returns None if nothing is found.
+    An explicit path -> itself if it exists. "auto" -> the first existing
+    candidate across all Steam libraries (parsed from libraryfolders.vdf), so it
+    works even when Dota is installed on a second drive. None if nothing matches.
     """
     if configured and configured != "auto":
         path = Path(configured).expanduser()
@@ -69,7 +112,8 @@ class ConsoleLogDetector(Detector):
             )
         path = resolve_console_log(self._configured)
         if path is None:
-            searched = "\n  ".join(str(p) for p in candidate_paths())
+            paths = candidate_paths()
+            searched = "\n  ".join(str(p) for p in paths) if paths else "(no Steam install found)"
             return (
                 "Couldn't find Dota's console.log.\n"
                 "In Steam set Dota's Launch Options to  -condebug -conclearlog  "

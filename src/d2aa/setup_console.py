@@ -44,7 +44,12 @@ def run() -> int:
 
     path = resolve_console_log("auto")
     if path is None:
-        searched = "\n  ".join(f"[muted]{p}[/]" for p in candidate_paths())
+        paths = candidate_paths()
+        searched = (
+            "\n  ".join(f"[muted]{p}[/]" for p in paths)
+            if paths
+            else "[muted](no Steam install found)[/]"
+        )
         ui.panel(
             "Couldn't find Dota's [topic]console.log[/] yet.\n\n"
             "[key]1.[/] Steam → Dota 2 → Properties → Launch Options\n"

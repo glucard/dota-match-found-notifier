@@ -92,3 +92,23 @@ def test_resolve_explicit_path(tmp_path):
     p.write_text("")
     assert resolve_console_log(str(p)) == p
     assert resolve_console_log(str(tmp_path / "missing.log")) is None
+
+
+def test_resolve_via_libraryfolders_second_drive(tmp_path, monkeypatch):
+    # Steam root with a libraryfolders.vdf that points to a second-drive library
+    # where Dota actually lives.
+    root = tmp_path / "Steam"
+    (root / "steamapps").mkdir(parents=True)
+    lib2 = tmp_path / "drive2" / "SteamLibrary"
+    dota_dir = lib2 / "steamapps" / "common" / "dota 2 beta" / "game" / "dota"
+    dota_dir.mkdir(parents=True)
+    (dota_dir / "console.log").write_text("")
+    (root / "steamapps" / "libraryfolders.vdf").write_text(
+        '"libraryfolders"\n{\n'
+        f'  "0" {{ "path" "{root}" }}\n'
+        f'  "1" {{ "path" "{lib2}" }}\n'
+        "}\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr("d2aa.detect.console._STEAM_ROOTS", [str(root)])
+    assert resolve_console_log("auto") == dota_dir / "console.log"
