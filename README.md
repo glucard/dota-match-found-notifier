@@ -1,0 +1,186 @@
+# d2aa — Dota 2 match-found phone notifier
+
+Get a push notification on your phone the moment Dota 2 finds a match, so you can
+walk away while queuing and come back to accept. **Notification only — it does not
+click Accept for you.**
+
+It works by watching a small spot on your screen for the green **Accept** popup and
+sending a push via [ntfy](https://ntfy.sh) (free, no account).
+
+```
+Dota 2  -->  d2aa watches the screen  -->  ntfy push  -->  phone
+```
+
+## ⚠️ Use at your own risk
+
+This is a personal hobby project, provided **as-is and with no warranty of any
+kind**. Use it **entirely at your own risk**.
+
+The author is **not responsible** for anything that results from using it —
+including but not limited to bugs, crashes, unexpected behavior, missed matches,
+abandons, account penalties, suspensions, or bans. It is not affiliated with or
+endorsed by Valve. By downloading or running it, **you accept full responsibility
+for any consequences.** If you're not comfortable with that, don't use it.
+
+---
+
+# How to use
+
+You only need to do the one-time setup once. After that it's just "run it before
+you queue."
+
+> **Before you start:** run Dota in **Borderless** or **Windowed** mode (not
+> exclusive fullscreen). Alt-tab is instant and the screen captures reliably;
+> exclusive fullscreen can capture a black screen, especially on Windows.
+
+## Step 1 — Download
+
+Go to the [**Releases**](../../releases) page and download the file for your system:
+
+- **Windows:** `d2aa.exe`
+- **Linux:** `d2aa`
+
+No installer — it's a single file.
+
+## Step 2 — Open a terminal where you downloaded it
+
+- **Windows:** open the folder with the file, click the address bar, type `cmd` and
+  press Enter. A black terminal window opens in that folder. Run commands as
+  `.\d2aa.exe ...`
+- **Linux:** open a terminal in that folder and run commands as `./d2aa ...` (you may
+  first need to allow it to run: `chmod +x d2aa`).
+
+The examples below use `d2aa` — on Windows type `.\d2aa.exe` instead.
+
+## Step 3 — Set it up once
+
+```
+d2aa --config
+```
+
+A short wizard walks you through it:
+
+1. **Queue a Dota match** so the green **Accept** popup can appear.
+2. On **Linux** a "share your screen" box pops up — pick **Entire Screen** and Share.
+   (Windows has no such box.)
+3. When the popup is showing, **press Enter** to start a 5-second countdown, then
+   **click back into Dota** so the Accept popup is on screen when it snaps a picture.
+   (The countdown is what lets you leave the terminal without the screenshot grabbing
+   the terminal instead.)
+4. A window opens with that screenshot — **click the green Accept button**, then click
+   the same spot again to **confirm**.
+
+It saves your settings and shows you a **topic name** (your private notification
+channel).
+
+## Step 4 — Connect your phone
+
+1. Install the **ntfy** app ([Android](https://play.google.com/store/apps/details?id=io.heckel.ntfy)
+   / [iOS](https://apps.apple.com/us/app/ntfy/id1625396347)).
+2. In the app, **subscribe** to the exact **topic name** the wizard showed you.
+
+## Step 5 — Test it
+
+```
+d2aa --test
+```
+
+Your phone should buzz with a test notification. If it does, you're set.
+
+## Step 6 — Use it
+
+Run this **before/while you queue**, then walk away:
+
+```
+d2aa
+```
+
+When a match is found, your phone gets a push. Keep Dota visible while it runs (it
+can only see what's on screen). Press **Ctrl-C** in the terminal to stop.
+
+### Tuning (optional)
+
+If it misses the popup or fires when it shouldn't, run:
+
+```
+d2aa --monitor
+```
+
+This shows a live match bar without notifying. Trigger the Accept popup and watch the
+bar — it should jump high and hold. If detection is off, just re-run `d2aa --config`
+and click more squarely on the solid green of the button.
+
+> On Linux (GNOME Wayland) the screen-share box appears once each time you start
+> `d2aa`. Within a run it keeps streaming, so it only asks once per launch.
+
+---
+
+# Reference
+
+## Where settings are stored
+
+`~/.config/d2aa/config.toml` (Linux) or `%APPDATA%\d2aa\config.toml` (Windows). You
+normally never edit this by hand — the wizard writes it for you.
+
+```toml
+[ntfy]
+server = "https://ntfy.sh"
+topic  = "d2aa-XXXXXXXX"   # your private push channel (keep it to yourself)
+priority = 5
+
+[calibration]
+x = 0.5                    # fractional screen coords (survive resolution changes)
+y = 0.72
+color = [108, 168, 50]     # sampled Accept-button color
+tolerance = 40             # per-pixel color match sensitivity
+region = 28                # size of the box checked around the spot
+min_fraction = 0.40        # how much of that box must match to count
+
+[runtime]
+poll_interval = 0.25       # seconds between checks
+cooldown = 30              # min seconds between notifications
+confirm_frames = 3         # consecutive hits required before notifying
+```
+
+## How it works
+
+Detection is **pluggable** — everything sits behind a `Detector` interface
+(`start/poll/stop`) so new methods can drop in without touching the rest:
+
+- **`pixel`** (shipping) — watches a calibrated screen region. Works on Windows + Linux.
+- **`netcon`** (planned, Linux only) — read Dota's real-time Source 2 console via
+  `-netconport`; resolution-independent and works even when Dota is minimized.
+  (Windows broke this in 2023, so it's Linux-only.)
+
+Screen capture is likewise abstracted: **mss** on Windows/X11, the **PipeWire
+ScreenCast portal** on Wayland (where mss returns black for fullscreen games).
+
+---
+
+# For developers
+
+Run from source with [uv](https://docs.astral.sh/uv/):
+
+```bash
+uv sync --extra wayland     # drop --extra wayland on Windows / X11-only
+uv run d2aa --config
+```
+
+Development:
+
+```bash
+uv sync --extra wayland --group dev
+uv run ruff check src/      # lint
+uv run pytest -q            # tests (no display/network needed)
+uv run python scripts/check_capture.py   # prove screen capture returns a real frame
+```
+
+Build a single-file binary (PyInstaller can't cross-compile — each OS builds its
+own; the GitHub Actions workflow builds both on a `v*` tag):
+
+```bash
+# Linux
+uv run pyinstaller --onefile --name d2aa --collect-all pipewire_capture pyi_entry.py
+# Windows
+uv run pyinstaller --onefile --name d2aa pyi_entry.py
+```

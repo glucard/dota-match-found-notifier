@@ -1,0 +1,44 @@
+[project]
+name = "d2aa"
+version = "0.1.0"
+description = "Notify your phone when Dota 2 finds a match."
+readme = "README.md"
+requires-python = ">=3.14"
+dependencies = [
+    "httpx>=0.28.1",
+    "mss>=10.2.0",
+    "numpy>=2.4.6",
+    "pillow>=12.2.0",
+    "platformdirs>=4.10.0",
+    "rich>=15.0.0",
+    "tomli-w>=1.2.0",
+]
+
+[project.optional-dependencies]
+wayland = [
+    "pipewire-capture>=0.2.9",
+]
+
+[project.scripts]
+d2aa = "d2aa.cli:run"
+
+[tool.ruff]
+target-version = "py314"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "RUF"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[build-system]
+requires = ["uv_build>=0.9.26,<0.10.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "pyinstaller>=6.20.0",
+    "pytest>=9.0.3",
+    "ruff>=0.15.17",
+]
