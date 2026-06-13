@@ -60,9 +60,9 @@ def _build_choices(cfg: Config | None) -> list[Choice]:
     ready = cfg is not None and cfg.calibration.calibrated
     gate = None if ready else _GATED
     return [
+        Choice("Start watching for a match", value="watch", disabled=gate),
         Choice("Set up / calibrate", value="config"),
         Choice("Test phone notification", value="test", disabled=gate),
-        Choice("Start watching for a match", value="watch", disabled=gate),
         Choice("Tune detection (live monitor)", value="monitor", disabled=gate),
         Choice("Show my ntfy / phone setup", value="info"),
         Choice("Quit", value="quit"),
