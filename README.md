@@ -42,31 +42,34 @@ Go to the [**Releases**](../../releases) page and download the file for your sys
 
 No installer — it's a single file.
 
-## Step 2 — Open a terminal where you downloaded it
+## Step 2 — Open it
 
-- **Windows:** open the folder with the file, click the address bar, type `cmd` and
-  press Enter. A black terminal window opens in that folder. Run commands as
-  `.\d2aa.exe ...`
-- **Linux:** open a terminal in that folder and run commands as `./d2aa ...` (you may
-  first need to allow it to run: `chmod +x d2aa`).
+- **Windows:** **double-click `d2aa.exe`.** A terminal window opens with a menu.
+  (If Windows warns about an unknown app, click *More info → Run anyway*.)
+- **Linux:** make it runnable once with `chmod +x d2aa`, then run `./d2aa`.
 
-The examples below use `d2aa` — on Windows type `.\d2aa.exe` instead.
-
-## Step 3 — Set it up once
+You'll see a simple menu — use the **↑/↓ arrow keys** and **Enter** to pick things.
+No commands to memorize:
 
 ```
-d2aa --config
+▶ What would you like to do?  (↑/↓, Enter)
+❯ Set up / calibrate
+  Test phone notification
+  Start watching for a match
+  Tune detection (live monitor)
+  Show my ntfy / phone setup
+  Quit
 ```
 
-A short wizard walks you through it:
+## Step 3 — Pick "Set up / calibrate"
+
+A short wizard walks you through teaching it where your Accept button is:
 
 1. **Queue a Dota match** so the green **Accept** popup can appear.
 2. On **Linux** a "share your screen" box pops up — pick **Entire Screen** and Share.
    (Windows has no such box.)
 3. When the popup is showing, **press Enter** to start a 5-second countdown, then
    **click back into Dota** so the Accept popup is on screen when it snaps a picture.
-   (The countdown is what lets you leave the terminal without the screenshot grabbing
-   the terminal instead.)
 4. A window opens with that screenshot — **click the green Accept button**, then click
    the same spot again to **confirm**.
 
@@ -79,39 +82,25 @@ channel).
    / [iOS](https://apps.apple.com/us/app/ntfy/id1625396347)).
 2. In the app, **subscribe** to the exact **topic name** the wizard showed you.
 
-## Step 5 — Test it
-
-```
-d2aa --test
-```
+## Step 5 — Pick "Test phone notification"
 
 Your phone should buzz with a test notification. If it does, you're set.
 
-## Step 6 — Use it
+## Step 6 — Pick "Start watching for a match"
 
-Run this **before/while you queue**, then walk away:
+Do this **before/while you queue**, then walk away. When a match is found, your phone
+gets a push. Keep Dota visible while it runs (it can only see what's on screen). Press
+**Ctrl-C** to stop watching and return to the menu.
 
-```
-d2aa
-```
+### If detection misses or false-fires
 
-When a match is found, your phone gets a push. Keep Dota visible while it runs (it
-can only see what's on screen). Press **Ctrl-C** in the terminal to stop.
-
-### Tuning (optional)
-
-If it misses the popup or fires when it shouldn't, run:
-
-```
-d2aa --monitor
-```
-
-This shows a live match bar without notifying. Trigger the Accept popup and watch the
-bar — it should jump high and hold. If detection is off, just re-run `d2aa --config`
-and click more squarely on the solid green of the button.
+Pick **Tune detection (live monitor)** from the menu. It shows a live match bar without
+notifying — trigger the Accept popup and watch it: the bar should jump high and hold. If
+it's off, just run **Set up / calibrate** again and click more squarely on the solid
+green of the button.
 
 > On Linux (GNOME Wayland) the screen-share box appears once each time you start
-> `d2aa`. Within a run it keeps streaming, so it only asks once per launch.
+> watching. It only asks once per launch.
 
 ---
 
@@ -163,8 +152,12 @@ Run from source with [uv](https://docs.astral.sh/uv/):
 
 ```bash
 uv sync --extra wayland     # drop --extra wayland on Windows / X11-only
-uv run d2aa --config
+uv run d2aa                 # interactive menu (in a TTY)
 ```
+
+Running `d2aa` in a terminal opens the menu. Flags skip it for direct/scripted use:
+`--config`, `--test`, `--watch` (start watching, no menu), `--monitor`, `-v`. When
+stdout isn't a TTY (pipe / service), bare `d2aa` starts watching instead of the menu.
 
 Development:
 
@@ -180,7 +173,10 @@ own; the GitHub Actions workflow builds both on a `v*` tag):
 
 ```bash
 # Linux
-uv run pyinstaller --onefile --name d2aa --collect-all pipewire_capture pyi_entry.py
+uv run pyinstaller --onefile --name d2aa \
+  --collect-submodules prompt_toolkit --collect-submodules questionary \
+  --collect-all pipewire_capture pyi_entry.py
 # Windows
-uv run pyinstaller --onefile --name d2aa pyi_entry.py
+uv run pyinstaller --onefile --name d2aa \
+  --collect-submodules prompt_toolkit --collect-submodules questionary pyi_entry.py
 ```

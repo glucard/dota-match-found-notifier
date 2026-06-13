@@ -45,7 +45,9 @@ jobs:
 
       - name: Build single-file binary
         run: >
-          uv run pyinstaller --onefile --name d2aa ${{ matrix.collect }}
+          uv run pyinstaller --onefile --name d2aa
+          --collect-submodules prompt_toolkit --collect-submodules questionary
+          ${{ matrix.collect }}
           pyi_entry.py
 
       - uses: actions/upload-artifact@v4
