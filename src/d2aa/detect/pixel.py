@@ -59,6 +59,11 @@ class PixelDetector(Detector):
         self._calib = calib
         self._target = np.array(calib.color, dtype=float)
 
+    def preflight(self) -> str | None:
+        if not self._calib.calibrated:
+            return "Not calibrated yet. Run  d2aa --config  first."
+        return None
+
     def start(self) -> None:
         self._cap.start()
 

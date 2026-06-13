@@ -24,10 +24,10 @@ class ConfigError(Exception):
 
 @dataclass
 class DetectorConfig:
-    backend: str = "pixel"  # "pixel" | "netcon" (future)
-    # netcon settings are ignored by the pixel backend but kept so the file is
-    # ready for the Linux-only netcon detector dropping in later.
-    netcon_port: int = 28000
+    backend: str = "pixel"  # "pixel" (screen) | "console" (Game Coordinator log, Linux)
+    # Console-backend settings (ignored by the pixel backend).
+    console_log_path: str = "auto"  # "auto" finds Dota's console.log, or an explicit path
+    console_triggers: list[str] = field(default_factory=lambda: ["k_EMsgGCReadyUpStatus"])
 
 
 @dataclass
@@ -85,7 +85,10 @@ class Config:
         return {
             "detector": {
                 "backend": self.detector.backend,
-                "netcon": {"port": self.detector.netcon_port},
+                "console": {
+                    "log_path": self.detector.console_log_path,
+                    "triggers": self.detector.console_triggers,
+                },
             },
             "capture": asdict(self.capture),
             "ntfy": asdict(self.ntfy),
@@ -96,10 +99,12 @@ class Config:
     @classmethod
     def from_toml_dict(cls, data: dict[str, Any]) -> Config:
         det = data.get("detector", {})
+        con = det.get("console", {})
         cfg = cls(
             detector=DetectorConfig(
                 backend=det.get("backend", "pixel"),
-                netcon_port=det.get("netcon", {}).get("port", 28000),
+                console_log_path=con.get("log_path", "auto"),
+                console_triggers=con.get("triggers", ["k_EMsgGCReadyUpStatus"]),
             ),
             capture=_build(CaptureConfig, data.get("capture", {})),
             ntfy=_build(NtfyConfig, data.get("ntfy", {})),

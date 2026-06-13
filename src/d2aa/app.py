@@ -52,36 +52,56 @@ def _monitor_line(frac: float, streak: int, need: int, min_fraction: float) -> T
 def run(cfg: Config, monitor: bool = False) -> int:
     """Run the watch loop.
 
-    If ``monitor`` is True, show the live match fraction every poll and do not
-    send notifications — useful for tuning ``tolerance``/``min_fraction``.
+    If ``monitor`` is True, no notifications are sent: the pixel backend shows a
+    live match bar; the console backend just prints when it would fire.
     """
-    if not cfg.calibration.calibrated:
-        ui.error("Not calibrated yet. Run  [accent]d2aa --config[/]  first.")
+    backend = cfg.detector.backend.lower()
+
+    # Only the pixel backend needs a screen capturer.
+    cap = make_capturer(cfg.capture) if backend == "pixel" else None
+    det = make_detector(cfg, cap)
+
+    err = det.preflight()
+    if err:
+        ui.error(err)
         return 1
 
-    cap = make_capturer(cfg.capture)
-    det = make_detector(cfg, cap)
     notifier = make_notifier(cfg.ntfy)
-
     stopper = _Stopper()
     det.start()
 
     can_measure = isinstance(det, PixelDetector)
     use_live = monitor and can_measure
+    # Console detection is latched (fires once, then poll() returns None), so a
+    # multi-frame streak would never confirm — it must fire on the first hit.
+    need = 1 if backend == "console" else cfg.runtime.confirm_frames
 
     if use_live:
         ui.panel(
-            f"Live tuning — no notifications are sent.\n"
-            f"[muted]Trigger the ACCEPT popup; the bar should spike past[/] "
+            "Live tuning — no notifications are sent.\n"
+            "[muted]Trigger the ACCEPT popup; the bar should spike past[/] "
             f"[key]{cfg.calibration.min_fraction * 100:.0f}%[/] [muted]and hold.[/]\n"
-            f"[muted]Press Ctrl-C to stop.[/]",
+            "[muted]Press Ctrl-C to stop.[/]",
             title="d2aa · monitor",
             style="info",
         )
-    else:
+    elif monitor:  # console monitor
         ui.panel(
-            f"Watching for a found match…\n"
-            f"[muted]Keep Dota visible while you queue. Press Ctrl-C to stop.[/]\n"
+            "Live test — no notifications are sent.\n"
+            "[muted]Reading Dota's Game Coordinator log. Trigger a ready-check "
+            "(a custom arcade\nlobby works, penalty-free) and you'll see "
+            "[/][ok]DETECTED[/][muted]. Ctrl-C to stop.[/]",
+            title="d2aa · monitor (console)",
+            style="info",
+        )
+    else:
+        visible = (
+            "Reads Dota's Game Coordinator log — works even minimized."
+            if backend == "console"
+            else "Keep Dota visible while you queue."
+        )
+        ui.panel(
+            f"Watching for a found match…\n[muted]{visible} Press Ctrl-C to stop.[/]\n"
             f"[muted]notifying[/] [topic]{cfg.ntfy.topic}[/] [muted]·[/] "
             f"[muted]{cfg.ntfy.server}[/]",
             title="d2aa · watching",
@@ -103,7 +123,6 @@ def run(cfg: Config, monitor: bool = False) -> int:
                         log.warning("measure error: %s", exc)
                         time.sleep(cfg.runtime.poll_interval)
                         continue
-                    need = cfg.runtime.confirm_frames
                     streak = streak + 1 if frac >= cfg.calibration.min_fraction else 0
                     live.update(
                         _monitor_line(frac, streak, need, cfg.calibration.min_fraction),
@@ -114,27 +133,25 @@ def run(cfg: Config, monitor: bool = False) -> int:
 
                 try:
                     event = det.poll()
-                except Exception as exc:  # never let a transient capture error kill us
+                except Exception as exc:  # never let a transient error kill us
                     log.warning("poll error: %s", exc)
                     event = None
 
-                # Require N consecutive positive polls before firing.
                 streak = streak + 1 if event else 0
-                confirmed = event is not None and streak >= cfg.runtime.confirm_frames
+                confirmed = event is not None and streak >= need
 
                 if confirmed and (now - last_fired) > cfg.runtime.cooldown:
-                    log.info(
-                        "[ok]🎮 Match found![/] (%.0f%% over %d frames) — notifying your phone",
-                        event.confidence * 100,
-                        streak,
-                    )
-                    notifier.send(
-                        title="Match Found!",
-                        message="Dota 2 — return to the PC and accept.",
-                        priority=cfg.ntfy.priority,
-                        tags=cfg.ntfy.tags,
-                        click=cfg.ntfy.click or None,
-                    )
+                    if monitor:
+                        ui.console.print("[ok]🎯 DETECTED[/] [muted](monitor — not notifying)[/]")
+                    else:
+                        log.info("[ok]🎮 Match found![/] — notifying your phone")
+                        notifier.send(
+                            title="Match Found!",
+                            message="Dota 2 — return to the PC and accept.",
+                            priority=cfg.ntfy.priority,
+                            tags=cfg.ntfy.tags,
+                            click=cfg.ntfy.click or None,
+                        )
                     last_fired = now
 
                 time.sleep(cfg.runtime.poll_interval)
