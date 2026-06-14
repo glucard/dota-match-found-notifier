@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-import d2aa.capture as cap
-from d2aa.capture import MssCapturer, PipewireCapturer, make_capturer
-from d2aa.config import CaptureConfig
+import d2kit.capture as cap
+from d2kit.capture import MssCapturer, PipewireCapturer, make_capturer
+from d2kit.config import CaptureConfig
 
 
 def test_forced_mss():

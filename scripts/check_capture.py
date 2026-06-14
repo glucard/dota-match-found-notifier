@@ -11,12 +11,12 @@ import sys
 import numpy as np
 from PIL import Image
 
-from d2aa.capture import make_capturer
-from d2aa.config import CaptureConfig
+from d2kit.capture import make_capturer
+from d2kit.config import CaptureConfig
 
 
 def main() -> int:
-    out = sys.argv[1] if len(sys.argv) > 1 else "/tmp/d2aa_capture_check.png"
+    out = sys.argv[1] if len(sys.argv) > 1 else "/tmp/d2kit_capture_check.png"
     cap = make_capturer(CaptureConfig(backend="auto"))
     print(f"backend: {type(cap).__name__}")
     print("If a screen-share picker appears, choose 'Entire Screen' and Share.")

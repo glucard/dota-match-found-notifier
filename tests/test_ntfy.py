@@ -3,7 +3,7 @@ from __future__ import annotations
 import httpx
 import pytest
 
-from d2aa.notify.ntfy import NtfyNotifier
+from d2kit.notify.ntfy import NtfyNotifier
 
 
 def test_empty_topic_rejected():
@@ -48,7 +48,7 @@ def test_non_ascii_title_is_sanitized_not_crashing(monkeypatch):
     monkeypatch.setattr(httpx.Client, "post", fake_post)
 
     # An emoji in the title must not raise (HTTP headers are ASCII-only).
-    NtfyNotifier("https://ntfy.sh", "t").send(title="d2aa test ✅", message="hi ✅")
+    NtfyNotifier("https://ntfy.sh", "t").send(title="d2kit test ✅", message="hi ✅")
 
     title = captured["headers"]["Title"]
     title.encode("ascii")  # would raise if any non-ASCII slipped through

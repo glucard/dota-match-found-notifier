@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import logging
 import time
+from typing import Any
 
 import numpy as np
 
@@ -33,9 +34,9 @@ _CAPTURE_INTERVAL = 0.1  # native capture cadence; faster than the default 0.25s
 class PipewireCapturer:
     def __init__(self, restore_token: str = "") -> None:
         self._restore_token = restore_token  # reserved; not used by this lib version
-        self._portal = None
-        self._session = None
-        self._stream = None
+        self._portal: Any = None  # pipewire_capture objects; the lib is untyped
+        self._session: Any = None
+        self._stream: Any = None
         self._last: Frame | None = None
         self._size = (0, 0)
 

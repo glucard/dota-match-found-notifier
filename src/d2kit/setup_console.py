@@ -32,7 +32,7 @@ def run() -> int:
         "Reads Dota's [topic]Game Coordinator[/] log to catch the ready-check the\n"
         "instant it appears — no screen capture, no calibration, works even when\n"
         "Dota is minimized. (Linux & Windows.)",
-        title="d2aa · console setup",
+        title="d2kit · console setup",
         style="accent",
     )
 
@@ -59,7 +59,7 @@ def run() -> int:
 
     cfg = _carry_config()
     cfg.detector.backend = "console"
-    cfg.detector.console_log_path = "auto"
+    cfg.detector.console.log_path = "auto"
     if not cfg.ntfy.topic:
         cfg.ntfy.topic = new_topic()
     saved = save(cfg)

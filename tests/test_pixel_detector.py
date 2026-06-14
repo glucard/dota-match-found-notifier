@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import numpy as np
 
-from d2aa.config import Calibration
-from d2aa.detect.pixel import PixelDetector, patch_mean_rgb
+from d2kit.config import Calibration
+from d2kit.detect.pixel import PixelDetector, patch_mean_rgb
 
 
 class FakeCapturer:

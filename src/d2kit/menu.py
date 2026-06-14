@@ -1,6 +1,6 @@
 """Interactive arrow-key menu — the friendly entry point.
 
-Shown when a human runs ``d2aa`` in a terminal (or double-clicks the binary). It
+Shown when a human runs ``d2kit`` in a terminal (or double-clicks the binary). It
 is pure orchestration: every action calls an existing function (a setup flow, the
 watch loop, the notifier) and reuses the rich console/theme so the look matches
 the rest of the app. No detection/notify/config logic lives here.
@@ -9,10 +9,10 @@ the rest of the app. No detection/notify/config logic lives here.
 from __future__ import annotations
 
 import questionary
-from questionary import Choice, Style
+from questionary import Choice, Separator, Style
 
 from . import app, ui
-from .config import Config, ConfigError, load
+from .config import Config, ConfigError, load, resolve_token, save
 from .detect.console import resolve_console_log
 from .gui import wizard
 
@@ -48,8 +48,37 @@ def _ready_reason(cfg: Config | None) -> str | None:
     if cfg is None:
         return _GATED
     if cfg.detector.backend.lower() == "console":
-        return None if resolve_console_log(cfg.detector.console_log_path) else _GATED
+        return None if resolve_console_log(cfg.detector.console.log_path) else _GATED
     return None if cfg.calibration.calibrated else _GATED
+
+
+def _stats_ready_reason(cfg: Config | None) -> str | None:
+    """Short disabled-reason if the stats tool isn't set up (token + account)."""
+    if cfg is None or not resolve_token(cfg) or not cfg.stats.account_id:
+        return _GATED
+    return None
+
+
+def _stats_setup() -> None:
+    cfg = _load_cfg_safe() or Config()
+    token = questionary.password(
+        "STRATZ API token (free at stratz.com/api; blank = keep current):",
+        style=MENU_STYLE,
+    ).ask()
+    account = questionary.text(
+        "Your Steam32 / friend id:",
+        default=str(cfg.stats.account_id or ""),
+        style=MENU_STYLE,
+    ).ask()
+    if token:
+        cfg.stats.stratz_api_token = token
+    if account and account.strip().isdigit():
+        cfg.stats.account_id = int(account)
+    save(cfg)
+    if _stats_ready_reason(cfg) is None:
+        ui.console.print("[ok]✓ Stats ready.[/] Use [accent]Compare a match[/].")
+    else:
+        ui.console.print("[warn]Saved — but both a token and Steam id are needed to compare.[/]")
 
 
 def _run_setup(cfg: Config | None) -> None:
@@ -89,29 +118,33 @@ def _choose_method() -> None:
 def _header(cfg: Config | None) -> None:
     ui.console.clear()
     ui.console.print(ui.APP_TITLE)
-    if _ready_reason(cfg) is not None:
+    if cfg is None:
         ui.panel(
-            "[warn]Not set up yet.[/] Pick [accent]Detection method[/] (screen or "
-            "console),\nthen [accent]Set up detection[/] to get started.",
-            title="welcome",
+            "[warn]Welcome![/] Set up the [accent]match notifier[/] and/or the "
+            "[accent]stats[/] tool from the menu below.",
+            title="d2kit",
             style="warn",
         )
-    else:
-        method = "console log" if cfg.detector.backend.lower() == "console" else "screen"
-        ui.console.print(
-            f"[muted]method[/] [key]{method}[/]  [muted]·[/]  "
-            f"[muted]topic[/] [topic]{cfg.ntfy.topic}[/]  [muted]·[/]  [ok]ready ✓[/]\n"
-        )
+        return
+    notifier = "[ok]ready ✓[/]" if _ready_reason(cfg) is None else "[muted]not set up[/]"
+    stats = "[ok]ready ✓[/]" if _stats_ready_reason(cfg) is None else "[muted]not set up[/]"
+    ui.console.print(f"[muted]notifier[/] {notifier}   [muted]·[/]   [muted]stats[/] {stats}\n")
 
 
-def _build_choices(cfg: Config | None) -> list[Choice]:
+def _build_choices(cfg: Config | None) -> list[Choice | Separator]:
     gate = _ready_reason(cfg)
+    stats_gate = _stats_ready_reason(cfg)
     return [
+        Separator("── Match notifier ──"),
         Choice("Start watching for a match", value="watch", disabled=gate),
         Choice("Set up detection", value="setup"),
         Choice("Detection method (screen / console)", value="method"),
         Choice("Test phone notification", value="test", disabled=gate),
         Choice("Tune detection (live monitor)", value="monitor", disabled=gate),
+        Separator("── Stats ──"),
+        Choice("Compare a match vs your mean + pros", value="stats", disabled=stats_gate),
+        Choice("Set up STRATZ token / Steam id", value="stats_setup"),
+        Separator(" "),
         Choice("Show my ntfy / phone setup", value="info"),
         Choice("Quit", value="quit"),
     ]
@@ -143,6 +176,12 @@ def _dispatch(action: str) -> bool:
         from .cli import send_test
 
         send_test(load())
+    elif action == "stats":
+        from .stats.flow import compare
+
+        compare(ui.console, load())
+    elif action == "stats_setup":
+        _stats_setup()
     elif action == "info":
         show_phone_setup(load())
     return action != "quit"

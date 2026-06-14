@@ -1,4 +1,4 @@
-"""Filesystem locations for d2aa, resolved per-platform via platformdirs."""
+"""Filesystem locations for d2kit, resolved per-platform via platformdirs."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ from pathlib import Path
 
 from platformdirs import user_config_dir
 
-_APP = "d2aa"
+_APP = "d2kit"
 
 
 def config_dir() -> Path:

@@ -23,13 +23,13 @@ jobs:
       matrix:
         include:
           - os: ubuntu-latest
-            artifact: d2aa-linux
-            binary: d2aa
+            artifact: d2kit-linux
+            binary: d2kit
             extra: "--extra wayland"
             collect: "--collect-all pipewire_capture"
           - os: windows-latest
-            artifact: d2aa-windows
-            binary: d2aa.exe
+            artifact: d2kit-windows
+            binary: d2kit.exe
             extra: ""
             collect: ""
     runs-on: ${{ matrix.os }}
@@ -45,8 +45,9 @@ jobs:
 
       - name: Build single-file binary
         run: >
-          uv run pyinstaller --onefile --name d2aa
+          uv run pyinstaller --onefile --name d2kit
           --collect-submodules prompt_toolkit --collect-submodules questionary
+          --collect-all pydantic
           ${{ matrix.collect }}
           pyi_entry.py
 

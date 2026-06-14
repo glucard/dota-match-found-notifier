@@ -7,7 +7,7 @@ and log rotation (re-opens if the file is replaced or shrinks).
 
 Usage:
   uv run python scripts/capture_console.py
-  uv run python scripts/capture_console.py --out ~/d2aa_capture.log
+  uv run python scripts/capture_console.py --out ~/d2kit_capture.log
 
 Leave it running, do ONE Find Match, accept the popup, then stop with Ctrl-C.
 The full record is in the --out file (default below).
@@ -24,7 +24,7 @@ DEFAULT_LOG = (
     "/home/glucas/.local/share/Steam/steamapps/common/"
     "dota 2 beta/game/dota/console.log"
 )
-DEFAULT_OUT = "/tmp/d2aa_console_capture.log"
+DEFAULT_OUT = "/tmp/d2kit_console_capture.log"
 
 
 def main() -> int:

@@ -27,7 +27,7 @@ def _ascii_header(value: str) -> str:
 class NtfyNotifier:
     def __init__(self, server: str, topic: str, timeout: float = 5.0) -> None:
         if not topic:
-            raise ValueError("ntfy topic is empty; run `d2aa --config` first")
+            raise ValueError("ntfy topic is empty; run `d2kit --config` first")
         self._url = f"{server.rstrip('/')}/{topic}"
         # Reuse one connection so a found-match POST skips TCP/TLS setup latency.
         self._client = httpx.Client(timeout=timeout, http2=False)

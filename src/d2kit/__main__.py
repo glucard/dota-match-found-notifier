@@ -1,4 +1,4 @@
-"""Allow ``python -m d2aa`` and act as the PyInstaller entry point."""
+"""Allow ``python -m d2kit`` and act as the PyInstaller entry point."""
 
 from __future__ import annotations
 

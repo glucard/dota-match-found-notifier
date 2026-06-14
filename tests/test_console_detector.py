@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from d2aa.detect.base import MatchEvent
-from d2aa.detect.console import ConsoleLogDetector, resolve_console_log
+from d2kit.detect.base import MatchEvent
+from d2kit.detect.console import ConsoleLogDetector, resolve_console_log
 
 _TRIGGER = "06/13 [GCClient] Recv msg 7170 (k_EMsgGCReadyUpStatus), 21 bytes\n"
 
@@ -113,5 +113,5 @@ def test_resolve_via_libraryfolders_second_drive(tmp_path, monkeypatch):
         f'"libraryfolders"\n{{\n  "0" {{ "path" "{root}" }}\n  "1" {{ "path" "{lib2}" }}\n}}\n',
         encoding="utf-8",
     )
-    monkeypatch.setattr("d2aa.detect.console._STEAM_ROOTS", [str(root)])
+    monkeypatch.setattr("d2kit.detect.console._STEAM_ROOTS", [str(root)])
     assert resolve_console_log("auto") == dota_dir / "console.log"

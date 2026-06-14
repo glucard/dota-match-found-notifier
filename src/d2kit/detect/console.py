@@ -19,6 +19,7 @@ from __future__ import annotations
 import os
 import re
 from pathlib import Path
+from typing import TextIO
 
 from .base import Detector, MatchEvent
 
@@ -101,7 +102,7 @@ class ConsoleLogDetector(Detector):
         self._configured = log_path
         self._triggers = list(triggers) if triggers else list(DEFAULT_TRIGGERS)
         self._path: Path | None = None
-        self._fp = None
+        self._fp: TextIO | None = None
         self._inode: int | None = None
         self._pos = 0
 
@@ -167,7 +168,7 @@ class ConsoleLogDetector(Detector):
         return True
 
     def poll(self) -> MatchEvent | None:
-        if not self._ensure_open():
+        if not self._ensure_open() or self._fp is None:
             return None
         self._fp.seek(self._pos)
         chunk = self._fp.read()

@@ -1,8 +1,9 @@
 [project]
-name = "d2aa"
+name = "d2kit"
 version = "0.1.0"
-description = "Notify your phone when Dota 2 finds a match."
+description = "Dota 2 toolbox: match-found phone notifier + timing stats vs your mean and pros."
 readme = "README.md"
+license = "MIT"
 requires-python = ">=3.14"
 dependencies = [
     "httpx>=0.28.1",
@@ -10,6 +11,7 @@ dependencies = [
     "numpy>=2.4.6",
     "pillow>=12.2.0",
     "platformdirs>=4.10.0",
+    "pydantic>=2.7",
     "questionary>=2.1.1",
     "rich>=15.0.0",
     "tomli-w>=1.2.0",
@@ -21,7 +23,7 @@ wayland = [
 ]
 
 [project.scripts]
-d2aa = "d2aa.cli:run"
+d2kit = "d2kit.cli:run"
 
 [tool.ruff]
 target-version = "py314"
@@ -32,10 +34,28 @@ select = ["E", "F", "I", "UP", "B", "SIM", "RUF"]
 
 [tool.ruff.lint.per-file-ignores]
 # UI glyphs (pointer ❯, arrows) are intentional, not ambiguous typos.
-"src/d2aa/menu.py" = ["RUF001"]
+"src/d2kit/menu.py" = ["RUF001"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+
+[tool.mypy]
+python_version = "3.14"
+files = ["src", "tests"]
+warn_redundant_casts = true
+warn_unused_ignores = true
+
+# Native/untyped third-party libs — don't require stubs.
+[[tool.mypy.overrides]]
+module = ["mss.*", "pipewire_capture.*", "PIL.*", "numpy.*", "questionary.*"]
+ignore_missing_imports = true
+
+# The stats subpackage is held to a stricter bar.
+[[tool.mypy.overrides]]
+module = "d2kit.stats.*"
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+warn_return_any = true
 
 [build-system]
 requires = ["uv_build>=0.9.26,<0.10.0"]
@@ -43,7 +63,9 @@ build-backend = "uv_build"
 
 [dependency-groups]
 dev = [
+    "mypy>=1.10",
     "pyinstaller>=6.20.0",
     "pytest>=9.0.3",
+    "pytest-httpx>=0.30",
     "ruff>=0.15.17",
 ]

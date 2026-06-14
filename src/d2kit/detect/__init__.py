@@ -25,5 +25,5 @@ def make_detector(cfg: Config, capturer: ScreenCapturer | None = None) -> Detect
             raise ValueError("The pixel detector requires a screen capturer.")
         return PixelDetector(capturer, cfg.calibration)
     if backend == "console":
-        return ConsoleLogDetector(cfg.detector.console_log_path, cfg.detector.console_triggers)
+        return ConsoleLogDetector(cfg.detector.console.log_path, cfg.detector.console.triggers)
     raise ValueError(f"Unknown detector backend: {cfg.detector.backend!r}")

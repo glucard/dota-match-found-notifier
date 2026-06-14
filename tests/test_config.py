@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from d2aa.config import Config, ConfigError, load, new_topic, save
+from d2kit.config import Config, ConfigError, load, new_topic, save
 
 
 def test_roundtrip(tmp_path):
@@ -20,8 +20,8 @@ def test_roundtrip(tmp_path):
     assert loaded.calibration.color == [10, 20, 30]
     assert loaded.calibration.calibrated is True
     assert loaded.detector.backend == "pixel"
-    assert loaded.detector.console_log_path == "auto"
-    assert loaded.detector.console_triggers == ["k_EMsgGCReadyUpStatus"]
+    assert loaded.detector.console.log_path == "auto"
+    assert loaded.detector.console.triggers == ["k_EMsgGCReadyUpStatus"]
 
 
 def test_legacy_netcon_config_loads(tmp_path):
@@ -33,11 +33,11 @@ def test_legacy_netcon_config_loads(tmp_path):
     )
     loaded = load(p)
     assert loaded.detector.backend == "pixel"
-    assert loaded.detector.console_log_path == "auto"
+    assert loaded.detector.console.log_path == "auto"
 
 
 def test_missing_file_friendly_error(tmp_path):
-    with pytest.raises(ConfigError, match="d2aa --config"):
+    with pytest.raises(ConfigError, match="d2kit --config"):
         load(tmp_path / "nope.toml")
 
 
@@ -57,4 +57,26 @@ def test_defaults():
     assert cfg.detector.backend == "pixel"
     assert cfg.capture.backend == "auto"
     assert cfg.calibration.calibrated is False
-    assert new_topic().startswith("d2aa-")
+    assert new_topic().startswith("d2kit-")
+
+
+def test_legacy_migration_imports_both_tools(tmp_path, monkeypatch):
+    # Pre-merge: separate ~/.config/d2aa and ~/.config/dota-stats configs.
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path))
+    (tmp_path / "d2aa").mkdir()
+    (tmp_path / "d2aa" / "config.toml").write_text(
+        '[ntfy]\ntopic = "d2aa-old"\n[calibration]\ncalibrated = true\nx = 0.4\n',
+        encoding="utf-8",
+    )
+    (tmp_path / "dota-stats").mkdir()
+    (tmp_path / "dota-stats" / "config.toml").write_text(
+        'stratz_api_token = "tok123"\naccount_id = 42\nlast_n = 15\n',
+        encoding="utf-8",
+    )
+    loaded = load()  # triggers migrate_legacy() then reads the unified file
+    assert loaded.ntfy.topic == "d2aa-old"
+    assert loaded.calibration.calibrated is True
+    assert loaded.calibration.x == 0.4
+    assert loaded.stats.stratz_api_token == "tok123"
+    assert loaded.stats.account_id == 42
+    assert loaded.stats.last_n == 15

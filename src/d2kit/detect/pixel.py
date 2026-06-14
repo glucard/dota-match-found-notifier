@@ -61,7 +61,7 @@ class PixelDetector(Detector):
 
     def preflight(self) -> str | None:
         if not self._calib.calibrated:
-            return "Not calibrated yet. Run  d2aa --config  first."
+            return "Not calibrated yet. Run  d2kit --config  first."
         return None
 
     def start(self) -> None:

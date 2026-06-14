@@ -59,7 +59,7 @@ def _pick_point(frame_rgb: np.ndarray) -> tuple[float, float] | None:
 
     h, w = frame_rgb.shape[:2]
     root = tk.Tk()
-    root.title("d2aa calibration — click the Accept button")
+    root.title("d2kit calibration — click the Accept button")
 
     # Fit the screenshot within ~90% of the screen, keep the scale factor.
     sw = int(root.winfo_screenwidth() * 0.9)
@@ -67,7 +67,7 @@ def _pick_point(frame_rgb: np.ndarray) -> tuple[float, float] | None:
     scale = min(sw / w, sh / h, 1.0)
     disp_w, disp_h = max(int(w * scale), 1), max(int(h * scale), 1)
 
-    img = Image.fromarray(frame_rgb).resize((disp_w, disp_h), Image.BILINEAR)
+    img = Image.fromarray(frame_rgb).resize((disp_w, disp_h), Image.Resampling.BILINEAR)
     photo = ImageTk.PhotoImage(img)
 
     result: dict[str, tuple[float, float]] = {}
@@ -125,10 +125,10 @@ def run() -> int:
     console = ui.console
 
     ui.panel(
-        "Let's teach d2aa where the [ok]green ACCEPT button[/] appears.\n"
+        "Let's teach d2kit where the [ok]green ACCEPT button[/] appears.\n"
         "[muted]Tip: run Dota in Borderless/Windowed (not exclusive fullscreen) so[/]\n"
         "[muted]alt-tab is smooth and the screen captures reliably.[/]",
-        title="d2aa · calibration",
+        title="d2kit · calibration",
         style="accent",
     )
     console.print("[key]1.[/] Queue a match so the green [ok]ACCEPT[/] popup can appear.")
@@ -188,7 +188,7 @@ def run() -> int:
     if not strong:
         console.print(
             "[warn]Heads up:[/] that match is a bit low. For best results, re-run "
-            "[accent]d2aa --config[/]\nand click squarely on the solid green of the "
+            "[accent]d2kit --config[/]\nand click squarely on the solid green of the "
             "ACCEPT button."
         )
 
@@ -197,9 +197,9 @@ def run() -> int:
         "[key]1.[/] Install the [topic]ntfy[/] app on your phone (Android / iOS).\n"
         f"[key]2.[/] Subscribe to this topic:  [topic]{cfg.ntfy.topic}[/]\n"
         f"   [muted]server: {cfg.ntfy.server}[/]\n\n"
-        "[muted]Then run[/] [accent]d2aa[/] [muted]while you queue — you'll get a push "
+        "[muted]Then run[/] [accent]d2kit[/] [muted]while you queue — you'll get a push "
         "when a match is found.[/]\n"
-        "[muted]First, test it with[/] [accent]d2aa --test[/][muted].[/]",
+        "[muted]First, test it with[/] [accent]d2kit --test[/][muted].[/]",
         title="📱 Phone setup (one time)",
         style="info",
     )

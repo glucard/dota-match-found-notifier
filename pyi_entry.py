@@ -5,13 +5,13 @@ package's own ``__main__.py`` (which uses relative imports like ``from .cli``)
 can't be used directly — it raises "attempted relative import with no known
 parent package". This shim imports the installed package absolutely instead.
 
-``python -m d2aa`` still uses ``src/d2aa/__main__.py``; this file is only for the
+``python -m d2kit`` still uses ``src/d2kit/__main__.py``; this file is only for the
 frozen binary.
 """
 
 import sys
 
-from d2aa.cli import run
+from d2kit.cli import run
 
 if __name__ == "__main__":
     sys.exit(run())

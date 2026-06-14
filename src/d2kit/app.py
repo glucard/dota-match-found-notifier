@@ -82,7 +82,7 @@ def run(cfg: Config, monitor: bool = False) -> int:
             "[muted]Trigger the ACCEPT popup; the bar should spike past[/] "
             f"[key]{cfg.calibration.min_fraction * 100:.0f}%[/] [muted]and hold.[/]\n"
             "[muted]Press Ctrl-C to stop.[/]",
-            title="d2aa · monitor",
+            title="d2kit · monitor",
             style="info",
         )
     elif monitor:  # console monitor
@@ -91,7 +91,7 @@ def run(cfg: Config, monitor: bool = False) -> int:
             "[muted]Reading Dota's Game Coordinator log. Trigger a ready-check "
             "(a custom arcade\nlobby works, penalty-free) and you'll see "
             "[/][ok]DETECTED[/][muted]. Ctrl-C to stop.[/]",
-            title="d2aa · monitor (console)",
+            title="d2kit · monitor (console)",
             style="info",
         )
     else:
@@ -104,7 +104,7 @@ def run(cfg: Config, monitor: bool = False) -> int:
             f"Watching for a found match…\n[muted]{visible} Press Ctrl-C to stop.[/]\n"
             f"[muted]notifying[/] [topic]{cfg.ntfy.topic}[/] [muted]·[/] "
             f"[muted]{cfg.ntfy.server}[/]",
-            title="d2aa · watching",
+            title="d2kit · watching",
             style="ok",
         )
 
@@ -117,6 +117,7 @@ def run(cfg: Config, monitor: bool = False) -> int:
                 now = time.monotonic()
 
                 if use_live:
+                    assert isinstance(det, PixelDetector) and live is not None  # narrowing
                     try:
                         frac = det.measure()
                     except Exception as exc:

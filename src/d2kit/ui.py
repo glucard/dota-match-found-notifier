@@ -33,7 +33,7 @@ console = Console(theme=THEME)
 err_console = Console(theme=THEME, stderr=True)
 
 # Brand mark reused across panels.
-APP_TITLE = "[accent]d2aa[/] [muted]· Dota 2 match-found notifier[/]"
+APP_TITLE = "[accent]d2kit[/] [muted]· Dota 2 toolbox[/]"
 
 
 def setup_logging(verbose: bool) -> None:

@@ -8,6 +8,8 @@ routes Wayland to the PipeWire backend instead.
 
 from __future__ import annotations
 
+from typing import Any
+
 import numpy as np
 
 from .base import CaptureError, Frame
@@ -15,8 +17,8 @@ from .base import CaptureError, Frame
 
 class MssCapturer:
     def __init__(self) -> None:
-        self._sct = None
-        self._monitor = None
+        self._sct: Any = None  # mss.mss(); the lib is untyped
+        self._monitor: Any = None
         self._size = (0, 0)
 
     def start(self) -> None:
