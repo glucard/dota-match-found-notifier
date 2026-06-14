@@ -26,16 +26,20 @@ def test_fires_on_trigger_appended(tmp_path):
     assert ev.kind == "match_found"
 
 
-def test_latches_no_refire(tmp_path):
+def test_fires_again_for_a_later_readycheck_same_session(tmp_path):
+    # Regression: the detector must fire for EVERY ready-check in a session, not
+    # just the first. (Deduping the repeated status lines within one check is the
+    # watch loop's cooldown job, not a permanent per-detector latch.)
     p = tmp_path / "console.log"
     p.write_text("")
     det = _started(p)
     with p.open("a") as f:
-        f.write("x k_EMsgGCReadyUpStatus 1\n")
+        f.write("first k_EMsgGCReadyUpStatus\n")
     assert det.poll() is not None
+    # ...minutes later, a new match is found in the SAME Dota session...
     with p.open("a") as f:
-        f.write("x k_EMsgGCReadyUpStatus 2\n")  # repeated status line
-    assert det.poll() is None  # latched until a new session
+        f.write("second k_EMsgGCReadyUpStatus\n")
+    assert det.poll() is not None  # would fail with the old permanent latch
 
 
 def test_ignores_non_trigger(tmp_path):

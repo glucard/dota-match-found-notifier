@@ -6,10 +6,12 @@ logs ``k_EMsgGCReadyUpStatus`` repeatedly during the ready-check; the first such
 line lands the instant the Accept popup appears (verified ~11s before the user
 accepts, and independent of whether they accept at all).
 
-We tail the file and fire on the first new trigger line. A ``_fired`` latch
-ignores the repeated status lines; it resets on truncation (``-conclearlog``
-wipes the log when Dota relaunches) so a later real match still fires. No thread
-is needed — each ``poll()`` reads only the bytes appended since the last call.
+We tail the file and fire on each new trigger line; the watch loop's cooldown
+collapses the repeated status lines of one ready-check into a single
+notification (just like the pixel backend), while still firing for later
+ready-checks in the same session. No thread is needed — each ``poll()`` reads
+only the bytes appended since the last call. Truncation (``-conclearlog`` wiping
+the log on relaunch) and rotation are handled by re-reading from the new start.
 
 This backend is Linux-only: on Windows ``console.log`` is buffered until the
 client exits, so there's nothing to tail in real time.
@@ -100,7 +102,6 @@ class ConsoleLogDetector(Detector):
         self._fp = None
         self._inode: int | None = None
         self._pos = 0
-        self._fired = False  # latch: only notify once per ready-check
 
     # -- readiness ---------------------------------------------------------
 
@@ -130,7 +131,6 @@ class ConsoleLogDetector(Detector):
         self._fp = None
         self._inode = None
         self._pos = 0
-        self._fired = False
         # Begin watching from the log's current end now, so a match that happens
         # right after start() isn't missed (and pre-existing history is skipped).
         self._ensure_open()
@@ -166,7 +166,6 @@ class ConsoleLogDetector(Detector):
 
         if st.st_size < self._pos:  # truncated (e.g. -conclearlog on relaunch)
             self._pos = 0
-            self._fired = False  # new session -> allow firing again
 
         return True
 
@@ -180,9 +179,11 @@ class ConsoleLogDetector(Detector):
             return None
         for line in chunk.splitlines():
             if any(t in line for t in self._triggers):
-                if self._fired:
-                    return None
-                self._fired = True
+                # Fire on every trigger line. The watch loop's cooldown collapses
+                # the repeated ready-up status lines of one ready-check into a
+                # single notification (exactly like the pixel backend). A
+                # per-detector latch would wrongly suppress *later* ready-checks
+                # in the same Dota session.
                 return MatchEvent(kind="match_found", confidence=1.0)
         return None
 
