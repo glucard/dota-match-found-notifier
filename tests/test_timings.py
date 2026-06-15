@@ -18,6 +18,8 @@ PLAYER = {
         ],
         "networthPerMinute": [0, 100, 250, 500],
         "lastHitsPerMinute": [0, 8, 12, 21],  # per-minute gains -> cumulative 0,8,20,41
+        "heroDamagePerMinute": [0, 50, 100, 200],  # -> cumulative 0,50,150,350
+        "towerDamagePerMinute": [0, 0, 300, 100],  # -> cumulative 0,0,300,400
     },
     "playbackData": {
         "abilityLearnEvents": [{"time": 120}, {"time": 30}, {"time": 300}],
@@ -44,6 +46,31 @@ def test_metric_lookups() -> None:
     assert t.last_hits_at(3) == 41  # + 21
     assert t.last_hits_at(10) is None
     assert t.networth_at(2) == 250
+    assert t.hero_damage_at(2) == 150  # cumulative: 0+50+100
+    assert t.tower_damage_at(3) == 400  # cumulative: 0+0+300+100
+    assert t.tower_damage_at(10) is None
+
+
+def test_extract_populates_provenance_and_context() -> None:
+    t = extract_timings(
+        5, PLAYER, ITEM_NAMES, account_id=42, player_name="pro", duration_seconds=1800
+    )
+    assert t.account_id == 42
+    assert t.player_name == "pro"
+    assert t.duration_seconds == 1800
+    assert t.duration_for_gate == 1800
+
+
+def test_duration_for_gate_falls_back_to_networth_length() -> None:
+    t = extract_timings(5, PLAYER, ITEM_NAMES)  # no duration → 4 net-worth minutes
+    assert t.duration_seconds is None
+    assert t.duration_for_gate == 4 * 60
+
+
+def test_significant_items_filters_by_cost() -> None:
+    t = extract_timings(5, PLAYER, ITEM_NAMES)
+    cost_by_name = {"blink": 2250, "magic_stick": 200}
+    assert t.significant_items(cost_by_name, 1000) == frozenset({"blink"})
 
 
 def test_aggregate_uses_median() -> None:

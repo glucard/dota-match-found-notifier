@@ -4,7 +4,7 @@
 CONSTANTS = """
 query Constants {
   constants {
-    items { id shortName }
+    items { id shortName stat { cost } }
     heroes { id shortName displayName }
   }
 }
@@ -18,7 +18,7 @@ query PlayerRecentMatches($id: Long!, $take: Int!) {
       id
       startDateTime
       gameMode
-      players(steamAccountId: $id) { heroId isVictory }
+      players(steamAccountId: $id) { heroId isVictory position }
     }
   }
 }
@@ -33,12 +33,17 @@ query PlayerHeroMatches($id: Long!, $hero: Short!, $take: Int!) {
     steamAccount { isAnonymous }
     matches(request: { heroIds: [$hero], lobbyTypeIds: [7], isParsed: true, take: $take }) {
       id
+      durationSeconds
       players(steamAccountId: $id) {
         heroId
+        position
+        isVictory
         stats {
           itemPurchases { itemId time }
           networthPerMinute
           lastHitsPerMinute
+          heroDamagePerMinute
+          towerDamagePerMinute
         }
         playbackData { abilityLearnEvents { time } }
       }
@@ -47,17 +52,65 @@ query PlayerHeroMatches($id: Long!, $hero: Short!, $take: Int!) {
 }
 """
 
+# Shared per-match-player timing selection, reused by the batched cohort query
+# below so the (long) stats block isn't repeated once per aliased account.
+_TIMINGS_FRAGMENT = """
+fragment Timings on MatchPlayerType {
+  heroId
+  position
+  isVictory
+  stats {
+    itemPurchases { itemId time }
+    networthPerMinute
+    lastHitsPerMinute
+    heroDamagePerMinute
+    towerDamagePerMinute
+  }
+  playbackData { abilityLearnEvents { time } }
+}
+"""
+
+
+def build_cohort_query(account_ids: list[int]) -> str:
+    """One aliased query fetching recent hero matches for several accounts at once.
+
+    GraphQL field aliasing batches what used to be one HTTP call per pro account
+    into a single request. ``$hero``/``$take`` stay variables, but account ids
+    can't be GraphQL variables when used as aliases, so they're inlined — each is
+    cast to ``int`` first, which both validates them and prevents injection.
+
+    Each alias also pulls ``steamAccount { id name }`` (for the "who was compared"
+    read-out) and ``durationSeconds`` (for duration-gated divergence).
+
+    Keep the batch small: STRATZ caps query complexity at 300k (~10 full-stat
+    accounts per request); see ``benchmark.fetch_pro_cohort``.
+    """
+    aliases = "\n".join(
+        f"  p{i}: player(steamAccountId: {int(aid)}) {{"
+        f" steamAccount {{ id name }}"
+        f" matches(request: {{ heroIds: [$hero], lobbyTypeIds: [7], isParsed: true, take: $take }})"
+        f" {{ id durationSeconds players(steamAccountId: {int(aid)}) {{ ...Timings }} }} }}"
+        for i, aid in enumerate(account_ids)
+    )
+    return f"{_TIMINGS_FRAGMENT}\nquery Cohort($hero: Short!, $take: Int!) {{\n{aliases}\n}}"
+
+
 # Timings for one account in one specific match (the match under analysis).
 MATCH_PLAYER_TIMINGS = """
 query MatchPlayerTimings($id: Long!, $account: Long!) {
   match(id: $id) {
     id
+    durationSeconds
     players(steamAccountId: $account) {
       heroId
+      position
+      isVictory
       stats {
         itemPurchases { itemId time }
         networthPerMinute
         lastHitsPerMinute
+        heroDamagePerMinute
+        towerDamagePerMinute
       }
       playbackData { abilityLearnEvents { time } }
     }

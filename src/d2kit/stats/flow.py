@@ -14,7 +14,9 @@ from rich.console import Console
 from ..config import Config, resolve_token
 from . import benchmark, cohort
 from .compare import build_rows
-from .render import render_comparison
+from .divergence import compute_divergence
+from .render import render_cohort_info, render_comparison, render_divergence
+from .similarity import select_similar
 from .stratz import StratzClient, StratzError, queries
 from .stratz.constants import Constants, load_constants
 
@@ -74,15 +76,25 @@ def _compare_flow(console: Console, client: StratzClient, cfg: Config, account_i
     if not personal:
         console.print("[yellow]No other matches on this hero to form your mean.[/yellow]")
 
-    rows = build_rows(match, benchmark.aggregate(personal), benchmark.aggregate(pro))
+    # Restrict both benchmarks to your role + a build like this match's.
+    cost_by_name = consts.cost_by_name
+    psel = select_similar(match, personal, cost_by_name)
+    prosel = select_similar(match, pro, cost_by_name)
+
+    rows = build_rows(
+        match, benchmark.aggregate(psel.matches), benchmark.aggregate(prosel.matches), cost_by_name
+    )
     render_comparison(
         console,
         rows,
         hero_name=consts.hero_names.get(hero_id, f"Hero {hero_id}"),
         match_id=match_id,
-        personal_n=len(personal),
-        pro_n=len(pro),
+        personal_n=len(psel.matches),
+        pro_n=len(prosel.matches),
+        position=match.position,
     )
+    render_cohort_info(console, psel, prosel)
+    render_divergence(console, compute_divergence(match, prosel.matches, cost_by_name))
 
 
 def _pick_match(recent: list[dict[str, Any]], consts: Constants) -> tuple[int, int] | None:
